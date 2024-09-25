@@ -1,9 +1,8 @@
 // const asyncHandler=(requestHandler)=>{
-//     (req,res,next)=>{
+//     return  (req,res,next)=>{
 //         Promise.resolve(requestHandler(req,res,next)).catch((err)=>next(err));
 //     }
-// }
-
+// };
 const asyncHandler=(func)=>async(req,res,next)=>{
 
     try {
@@ -13,4 +12,4 @@ const asyncHandler=(func)=>async(req,res,next)=>{
         res.status(500).json({message:"Server Error"});
     }
 };
-export default {asyncHandler}; 
+export    {asyncHandler}; 

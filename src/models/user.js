@@ -46,7 +46,7 @@ const userSchema=new mongoose.Schema({
         default:null
     },
     watchHistory:{
-        type:Schema.Types.ObjectId,
+        type:mongoose.Schema.Types.ObjectId,
         ref:'video'
     }
 
@@ -54,7 +54,7 @@ const userSchema=new mongoose.Schema({
 
 userSchema.pre('save',async function(next){
     if (!this.isModified('password') ) return next();
-    this.password=bcrypt.hash(this.password,10);
+    this.password=await bcrypt.hash(this.password,10);
 });
 
 userSchema.methods.isPasswordCorrect=async function(password){
@@ -79,4 +79,7 @@ userSchema.methods.generateAccessToken=async function(){
     process.env.ACCESS_TOKEN_EXPIRY);
 };
 
-export const connection=mongoose.model('user',userSchema);
+
+const User=mongoose.model('user',userSchema);
+
+export {User};

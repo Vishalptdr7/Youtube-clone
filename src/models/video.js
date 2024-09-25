@@ -34,13 +34,13 @@ const videoSchema=new mongoose.Schema({
         default:false,
     },
     owner:{
-        type:Schema.Types.ObjectId,
+        type:mongoose.Schema.Types.ObjectId,
         ref:'user',
         required:true,
     }
 
 },{timestamps:true});
 
-videoSchema.plugin(mongooseAggregatePaginate)
+videoSchema.plugin(mongooseAggregatePaginate);
 
 export const connection=mongoose.model('video',videoSchema);
