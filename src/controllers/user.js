@@ -4,6 +4,7 @@ import { User } from "../models/user.js";
 import { uploadfileOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiRespone.js";
 import { verifyJWT } from "../middlewares/auth.js";
+import jwt from "jsonwebtoken";
 
 const generateAccessTokenAndRefreshToken = async (userId) => {
   try {
@@ -155,6 +156,7 @@ const loginUser = asyncHandler(async (req, res) => {
 //     .json(new ApiResponse(200, {}, "User logged out"));
 // });
 
+
 const logoutUser = asyncHandler(async (req, res) => {
   await User.findByIdAndUpdate(
     req.user._id,
@@ -178,7 +180,52 @@ const logoutUser = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, {}, "User logged out"));
 });
 
-export { registerUser, loginUser, logoutUser };
+
+
+const refreshAccessToken=asyncHandler(async(req,res)=>{
+  const incomingRefreshToken=req.cookies.refreshToken ||req.body.refreshToken;
+  if (!incomingRefreshToken){
+    throw new ApiError(401, "Refresh Token is required");
+  };
+  try {
+    const decodedToken=jwt.verify(incomingRefreshToken, process.env.REFRESH_TOKEN_SECRET);
+    const user=await User.findById(decodedToken._id);
+    if (!user){
+      throw new ApiError(401, "Invalid Refresh Token");
+    };
+    
+    if (incomingRefreshToken !==user.refreshToken ){
+      throw new ApiError(401, "Refresh Token has expired");
+    }
+    const { accessToken, newrefreshToken } = await generateAccessTokenAndRefreshToken(user._id);
+  
+    const loggedUser = await User.findById(user._id).select(
+      "-password -refreshToken"
+    );
+    const options = {
+      httpOnly: true,
+      secure: true,
+    };
+  
+    return res
+     .status(200)
+     .cookie("accessToken", accessToken, options)
+     .cookie("refreshToken", newrefreshToken, options)
+     .json(
+        new ApiResponse(200, {
+          user: loggedUser,
+          refreshToken:newrefreshToken,
+          accessToken,
+          message: "Logged in successfully",
+        })
+      );
+  } catch (error) {
+    throw new ApiError(error,"Refresh Token has expired");
+  }
+});
+
+
+export { registerUser, loginUser, logoutUser,refreshAccessToken };
 
 
 
