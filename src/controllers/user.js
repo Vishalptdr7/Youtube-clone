@@ -96,9 +96,11 @@ const loginUser = asyncHandler(async (req, res) => {
   //send token
 
   const { username, email, password } = req.body;
+  console.log(username, email, password);
   if (!username && !email) {
     throw new ApiError(400, "Username or email is required");
   }
+  
   const user = await User.findOne({ $or: [{ email }, { username }] });
   if (!user) {
     throw new ApiError(401, "User not found");
@@ -132,6 +134,7 @@ const loginUser = asyncHandler(async (req, res) => {
       })
     );
 });
+
 
 // const logoutUser = asyncHandler(async (req, res) => {
 //   await User.findByIdAndUpdate(
@@ -198,7 +201,7 @@ const refreshAccessToken=asyncHandler(async(req,res)=>{
       throw new ApiError(401, "Refresh Token has expired");
     }
     const { accessToken, newrefreshToken } = await generateAccessTokenAndRefreshToken(user._id);
-  
+    console.log(newrefreshToken)
     const loggedUser = await User.findById(user._id).select(
       "-password -refreshToken"
     );
