@@ -48,6 +48,14 @@ const userSchema=new mongoose.Schema({
     watchHistory:{
         type:mongoose.Schema.Types.ObjectId,
         ref:'video'
+    },
+    otp:{
+        type:String,
+        default:null
+    },
+    otpExpiry:{
+        type:Date,
+        default:null
     }
 
 },{timestamps:true});

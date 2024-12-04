@@ -24,7 +24,20 @@
 import { Router } from "express";
 
 // Import controllers
-import {loginUser, registerUser,logoutUser, refreshAccessToken,changeCurrentPassword,currentUser,updateAccountDetails,updateCoverImage,updateUserAvtar, getUserChannelProfile, getWatchHistory} from "../controllers/user.js";
+import {
+  registerUser,
+  verifyOtpAndCreateUser,
+  loginUser,
+  logoutUser,
+  refreshAccessToken,
+  changeCurrentPassword,
+  currentUser,
+  updateAccountDetails,
+  updateCoverImage,
+  updateUserAvtar,
+  getUserChannelProfile,
+  getWatchHistory,
+} from "../controllers/user.js";
 import { upload } from "../middlewares/multer.js";
 import { verifyJWT } from "../middlewares/auth.js";
 
@@ -32,7 +45,7 @@ import { verifyJWT } from "../middlewares/auth.js";
 const router = Router();
 
 // User registration route
-router.route("/register").post(
+router.route("/registerUser").post(
   upload.fields([
     {
       name: "avtar", // Note: check if you want to use 'avatar' instead of 'avtar'
@@ -45,6 +58,7 @@ router.route("/register").post(
   ]),
   registerUser
 );
+router.route("/verifyOtpAndCreateUser").post(verifyOtpAndCreateUser);
 
 router.route("/login").post(loginUser);
 

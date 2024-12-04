@@ -7,6 +7,8 @@ import { ApiResponse } from "../utils/ApiRespone.js";
 import { verifyJWT } from "../middlewares/auth.js";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
+import nodemailer from "nodemailer";
+import { TempUser } from "../models/tempuser.js";
 
 
 
@@ -35,18 +37,158 @@ const generateAccessTokenAndRefreshToken = async (userId) => {
 
 
 
-const registerUser = asyncHandler(async (req, res) => {
-  // res.status(200).json({
-  //     message:"User registered successfully"
-  // })
-  ///get user details from frontend
-  // validations if not empty
-  //check if user is already registered ,using email,username
-  //check for image,check for avatar
-  //upload image
+// const registerUser = asyncHandler(async (req, res) => {
 
+
+//   const { email, username, password, fullname } = req.body;
+//   console.log("email:", email);
+//   if (fullname === "") {
+//     throw new ApiError(400, "Full Name is required");
+//   }
+
+
+//   if (email === "") {
+//     throw new ApiError(400, "Email is required");
+//   }
+
+
+
+// ///otp generator 
+
+
+
+
+// const optGenerator = () => {
+//   return Math.floor(100000 + Math.random() * 900000).toString();
+// };
+
+// let mailTransporter = nodemailer.createTransport({
+//   service: "gmail",
+//   auth: {
+//     user: "patidarvishal233@gmail.com",
+//     pass: "biampgpfzaqlnwwp",
+//   },
+// });
+
+// const otp = optGenerator();
+
+// let mailDetails = {
+//   from: "patidarvishal233@gmail.com",
+//   to: `${email}`,
+//   subject: "Test mail",
+//   text: `Your OTP for verification is ${otp}.`, // Plain text body
+//   html: `<h1>Your OTP</h1><p>Your OTP for verification is <strong>${otp}</strong>.</p>`,
+// };
+
+
+
+
+
+
+
+// ///between these
+
+
+
+
+
+
+//   if (username === "") {
+//     throw new ApiError(400, "Username is required");
+//   }
+//   if (password === "") {
+//     throw new ApiError(400, "Password is required");
+//   }
+
+//   const exist = await User.findOne({
+//     $or: [{ email }, { username }],
+//   });
+//   if (exist) {
+//     throw new ApiError(400, "User already exists");
+//   }
+
+//   const avtarLocalPath = req.files?.avtar[0]?.path;
+//   const coverImageLocalPath = req.files?.coverImage[0]?.path;
+//   if (!avtarLocalPath) {
+//     throw new ApiError(400, "Avatar is required");
+//   }
+
+//   const avtar = await uploadfileOnCloudinary(avtarLocalPath);
+//   const coverImage = await uploadfileOnCloudinary(coverImageLocalPath);
+//   if (!avtar) {
+//     throw new ApiError(400, "Avatar is required");
+//   }
+
+
+// ////kjdgsa
+
+// mailTransporter.sendMail(mailDetails, function (err, data) {
+//   if (err) {
+//     console.log("Error Occurs");
+//   } else {
+//     console.log(pass, "Email sent successfully");
+//   }
+// });
+
+// ////dsah
+
+
+// const requireOtp=req.params;
+
+// if(requireOtp.otp!=otp){
+//     throw new ApiError(400,"OTP does not match");
+// }
+
+
+
+
+
+
+//   const user = await User.create({
+//     fullname,
+//     avtar: avtar.url,
+//     coverImage: coverImage?.url || "",
+//     email,
+//     username: username.toLowerCase(),
+//     password,
+//     otp: otp
+
+//   });
+
+
+//   const createdUser = await User.findOne(user._id).select(
+//     "-password -refreshToken"
+//   );
+
+//   if (!createdUser) {
+//     throw new ApiError(500, "Something went wrong in server");
+//   }
+
+//   return res
+//     .status(201)
+//     .json(new ApiResponse(200, createdUser, "User created successfully"));
+// });
+
+
+
+
+
+
+
+
+
+
+const registerUser = asyncHandler(async (req, res) => {
+  //   // res.status(200).json({
+  //   //     message:"User registered successfully"
+  //   // })
+  //   ///get user details from frontend
+  //   // validations if not empty
+  //   //check if user is already registered ,using email,username
+  //   //check for image,check for avatar
+  //   //upload image
   const { email, username, password, fullname } = req.body;
-  console.log("email:", email);
+
   if (fullname === "") {
     throw new ApiError(400, "Full Name is required");
   }
@@ -54,13 +196,16 @@ const registerUser = asyncHandler(async (req, res) => {
   if (email === "") {
     throw new ApiError(400, "Email is required");
   }
+
   if (username === "") {
     throw new ApiError(400, "Username is required");
   }
+
   if (password === "") {
     throw new ApiError(400, "Password is required");
   }
 
+  // Check if User Already Exists
   const exist = await User.findOne({
     $or: [{ email }, { username }],
   });
@@ -68,39 +213,122 @@ const registerUser = asyncHandler(async (req, res) => {
     throw new ApiError(400, "User already exists");
   }
 
-  const avtarLocalPath = req.files?.avtar[0]?.path;
-  const coverImageLocalPath = req.files?.coverImage[0]?.path;
+  // Handle Avatar and Cover Image Upload
+  const avtarLocalPath = req.files?.avtar?.[0]?.path;
+  const coverImageLocalPath = req.files?.coverImage?.[0]?.path;
   if (!avtarLocalPath) {
     throw new ApiError(400, "Avatar is required");
   }
 
   const avtar = await uploadfileOnCloudinary(avtarLocalPath);
-  const coverImage = await uploadfileOnCloudinary(coverImageLocalPath);
+  const coverImage = coverImageLocalPath
+    ? await uploadfileOnCloudinary(coverImageLocalPath)
+    : null;
+
   if (!avtar) {
-    throw new ApiError(400, "Avatar is required");
+    throw new ApiError(400, "Failed to upload avatar");
   }
 
-  const user = await User.create({
+  // Generate OTP
+  const otpGenerator = () => {
+    return Math.floor(100000 + Math.random() * 900000).toString();
+  };
+
+  const otp = otpGenerator();
+
+  // Configure Mail Transporter
+  let mailTransporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: "patidarvishal233@gmail.com",
+      pass: "biampgpfzaqlnwwp",
+    },
+  });
+
+  let mailDetails = {
+    from: "patidarvishal233@gmail.com",
+    to: `${email}`,
+    subject: "Test mail",
+    text: `Your OTP for verification is ${otp}.`, // Plain text body
+    html: `<h1>Your OTP</h1><p>Your OTP for verification is <strong>${otp}</strong>.</p>`,
+  };
+
+  try {
+    await mailTransporter.sendMail(mailDetails);
+  } catch (err) {
+    throw new ApiError(500, "Failed to send OTP email");
+  }
+
+  // Save Temporary User with OTP
+  const tempUser = await TempUser.create({
     fullname,
     avtar: avtar.url,
     coverImage: coverImage?.url || "",
     email,
     username: username.toLowerCase(),
-    password,
+    password, // Hash password
+    otp,
+    otpExpiry: Date.now() + 10 * 60 * 1000, // OTP valid for 10 minutes
   });
 
-  const createdUser = await User.findOne(user._id).select(
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        { email: tempUser.email, otp },
+        "OTP sent successfully. Please verify to complete registration"
+      )
+    );
+});
+
+const verifyOtpAndCreateUser = asyncHandler(async (req, res) => {
+  const { email, otp } = req.body;
+
+  // Fetch Temporary User
+  const Tempuser = await TempUser.findOne({ email:email });
+  if (!Tempuser) throw new ApiError(404, "User not found");
+
+  // Validate OTP
+  if (Tempuser.otp !== otp) throw new ApiError(400, "Invalid OTP");
+  if (Tempuser.otpExpiry < Date.now()) {
+    await User.deleteOne({ email });
+    throw new ApiError(400, "OTP expired. Please register again");
+  }
+
+  // Create Permanent User
+  const user = await User.create({
+    fullname: Tempuser.fullname,
+    avtar: Tempuser.avtar,
+    coverImage: Tempuser.coverImage,
+    email: Tempuser.email,
+    username: Tempuser.username,
+    password: Tempuser.password, // Already hashed
+  });
+
+  // Clean Up Temporary User
+  await TempUser.deleteOne({ email });
+
+  // Exclude Sensitive Data
+  const createdUser = await User.findById(user._id).select(
     "-password -refreshToken"
   );
 
   if (!createdUser) {
-    throw new ApiError(500, "Something went wrong in server");
+    throw new ApiError(500, "Something went wrong during registration");
   }
 
   return res
     .status(201)
-    .json(new ApiResponse(200, createdUser, "User created successfully"));
+    .json(new ApiResponse(201, createdUser, "User created successfully"));
 });
+
+
+
+
+
+
+
 
 
 
@@ -590,7 +818,7 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
 
 
 
-export { registerUser, loginUser, logoutUser,refreshAccessToken,changeCurrentPassword,currentUser ,updateAccountDetails,updateCoverImage,updateUserAvtar,getUserChannelProfile,getWatchHistory};
+export { registerUser,verifyOtpAndCreateUser, loginUser, logoutUser,refreshAccessToken,changeCurrentPassword,currentUser ,updateAccountDetails,updateCoverImage,updateUserAvtar,getUserChannelProfile,getWatchHistory};
 
 
 
