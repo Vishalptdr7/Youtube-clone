@@ -205,7 +205,6 @@ const registerUser = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Password is required");
   }
 
-  // Check if User Already Exists
   const exist = await User.findOne({
     $or: [{ email }, { username }],
   });
@@ -213,7 +212,6 @@ const registerUser = asyncHandler(async (req, res) => {
     throw new ApiError(400, "User already exists");
   }
 
-  // Handle Avatar and Cover Image Upload
   const avtarLocalPath = req.files?.avtar?.[0]?.path;
   const coverImageLocalPath = req.files?.coverImage?.[0]?.path;
   if (!avtarLocalPath) {
@@ -236,7 +234,6 @@ const registerUser = asyncHandler(async (req, res) => {
 
   const otp = otpGenerator();
 
-  // Configure Mail Transporter
   let mailTransporter = nodemailer.createTransport({
     service: "gmail",
     auth: {
@@ -249,7 +246,7 @@ const registerUser = asyncHandler(async (req, res) => {
     from: "patidarvishal233@gmail.com",
     to: `${email}`,
     subject: "Test mail",
-    text: `Your OTP for verification is ${otp}.`, // Plain text body
+    text: `Your OTP for verification is ${otp}.`, 
     html: `<h1>Your OTP</h1><p>Your OTP for verification is <strong>${otp}</strong>.</p>`,
   };
 
@@ -259,16 +256,15 @@ const registerUser = asyncHandler(async (req, res) => {
     throw new ApiError(500, "Failed to send OTP email");
   }
 
-  // Save Temporary User with OTP
   const tempUser = await TempUser.create({
     fullname,
     avtar: avtar.url,
     coverImage: coverImage?.url || "",
     email,
     username: username.toLowerCase(),
-    password, // Hash password
+    password,
     otp,
-    otpExpiry: Date.now() + 10 * 60 * 1000, // OTP valid for 10 minutes
+    otpExpiry: Date.now() + 10 * 60 * 1000, 
   });
 
   return res
@@ -285,31 +281,26 @@ const registerUser = asyncHandler(async (req, res) => {
 const verifyOtpAndCreateUser = asyncHandler(async (req, res) => {
   const { email, otp } = req.body;
 
-  // Fetch Temporary User
   const Tempuser = await TempUser.findOne({ email:email });
   if (!Tempuser) throw new ApiError(404, "User not found");
 
-  // Validate OTP
   if (Tempuser.otp !== otp) throw new ApiError(400, "Invalid OTP");
   if (Tempuser.otpExpiry < Date.now()) {
     await User.deleteOne({ email });
     throw new ApiError(400, "OTP expired. Please register again");
   }
 
-  // Create Permanent User
   const user = await User.create({
     fullname: Tempuser.fullname,
     avtar: Tempuser.avtar,
     coverImage: Tempuser.coverImage,
     email: Tempuser.email,
     username: Tempuser.username,
-    password: Tempuser.password, // Already hashed
+    password: Tempuser.password, 
   });
 
-  // Clean Up Temporary User
   await TempUser.deleteOne({ email });
 
-  // Exclude Sensitive Data
   const createdUser = await User.findById(user._id).select(
     "-password -refreshToken"
   );
@@ -359,6 +350,7 @@ const loginUser = asyncHandler(async (req, res) => {
   if (!isPasswordValid) {
     throw new ApiError("Invalid credentials", 401);
   }
+  
 
   const { accessToken, refreshToken } =
     await generateAccessTokenAndRefreshToken(user._id);
@@ -504,6 +496,7 @@ const changeCurrentPassword= asyncHandler(async (req,res)=>{
   if (!(newPassword===confirmPassword)){
     throw new ApiError(400, "New Password and Confirm Password do not match");
   }
+
   const user=await User.findById(req.user?._id);
   if (!user){
     throw new ApiError(401, "User not found");
@@ -514,6 +507,7 @@ const changeCurrentPassword= asyncHandler(async (req,res)=>{
   }
   user.password=newPassword;
   await user.save({validateBeforeSave:false});
+
   return res.status(200).json(new ApiResponse(200,{},"Password Changed Successfully"))
 })
 
