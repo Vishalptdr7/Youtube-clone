@@ -19,5 +19,9 @@ import userRouter from "./routes/user.js";
 
 app.use('/api/users',userRouter);
 
+import videoRouter from "./routes/video.js";
+
+app.use("/api/videos", videoRouter);
+
 
 export {app};

@@ -45,10 +45,10 @@ const userSchema=new mongoose.Schema({
         type:String,
         default:null
     },
-    watchHistory:{
+    watchHistory:[{
         type:mongoose.Schema.Types.ObjectId,
         ref:'video'
-    },
+    }],
     otp:{
         type:String,
         default:null
@@ -56,7 +56,11 @@ const userSchema=new mongoose.Schema({
     otpExpiry:{
         type:Date,
         default:null
-    }
+    },
+    video:[{
+        type:mongoose.Schema.Types.ObjectId,
+        ref:'Video'
+    }]
 
 },{timestamps:true});
 
